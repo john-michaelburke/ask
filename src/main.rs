@@ -11,15 +11,17 @@ struct Cli {
     key: Option<String>,
 
     /// Query
-    query: String,
+    #[arg(required = true, num_args = 1..)]
+    query: Vec<String>,
 }
-    
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Cli::parse();
-    let key = args.key.expect("OPENAI_API_KEY not set or `--key` not provided");
-    let query = args.query;
+    let key = args
+        .key
+        .expect("OPENAI_API_KEY not set or `--key` not provided");
+    let query = args.query.join(" ");
 
     let response = gpt::process_query(key, query).await?;
 
