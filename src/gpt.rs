@@ -4,7 +4,8 @@ use chatgpt::types::CompletionResponse;
 const CONVERSATION_HISTORY_FILE: &str = "gpt-conversation.json";
 
 pub async fn process_query(key: String, query: String) -> Result<CompletionResponse> {
-    let client = ChatGPT::new(key)?;
+    let mut client = ChatGPT::new(key)?;
+    client.config.timeout = std::time::Duration::from_secs(30);
 
     let history_file = std::env::temp_dir().join(CONVERSATION_HISTORY_FILE);
 
