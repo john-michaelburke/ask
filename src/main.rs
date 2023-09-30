@@ -1,6 +1,5 @@
 use chatgpt::prelude::*;
 use clap::Parser;
-
 mod gpt;
 
 #[derive(Parser)]
@@ -24,8 +23,8 @@ async fn main() -> Result<()> {
     let query = args.query.join(" ");
 
     let response = gpt::process_query(key, query).await?;
-
-    println!("\n{}\n", response.message().content);
-
+    for message in response {
+        println!("{}", message.content);
+    }
     Ok(())
 }

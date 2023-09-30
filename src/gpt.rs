@@ -1,9 +1,9 @@
 use chatgpt::prelude::*;
-use chatgpt::types::CompletionResponse;
+use futures_util::StreamExt;
 
 const CONVERSATION_HISTORY_FILE: &str = "gpt-conversation.json";
 
-pub async fn process_query(key: String, query: String) -> Result<CompletionResponse> {
+pub async fn process_query(key: String, query: String) -> Result<Vec<ChatMessage>> {
     let mut client = ChatGPT::new(key)?;
     client.config.timeout = std::time::Duration::from_secs(30);
 
@@ -15,8 +15,24 @@ pub async fn process_query(key: String, query: String) -> Result<CompletionRespo
         client.new_conversation()
     };
 
-    let response = conversation.send_message(query).await?;
+    let mut stream = conversation.send_message_streaming(query).await?;
+    let mut output: Vec<ResponseChunk> = Vec::new();
+    while let Some(chunk) = stream.next().await {
+        match chunk {
+            ResponseChunk::Content {
+                delta,
+                response_index,
+            } => {
+                output.push(ResponseChunk::Content {
+                    delta,
+                    response_index,
+                });
+            }
+            other => output.push(other),
+        }
+    }
+    let messages = ChatMessage::from_response_chunks(output);
+    conversation.history.push(messages[0].to_owned());
     conversation.save_history_json(history_file).await?;
-
-    Ok(response)
+    Ok(messages)
 }
