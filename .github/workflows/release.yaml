@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+      - name: Build
+        run: cargo deb
+      - name: Store artifact filename
+        shell: bash
+        run: |
+          INSTALLER_ARCHIVE=$(find target/debian -maxdepth 1 -iname "*.deb")
+          echo $INSTALLER_ARCHIVE >installer-archive.filename
+          echo "INSTALLER_ARCHIVE=$(cat installer-archive.filename)" >>$GITHUB_ENV
+      - uses: actions/upload-artifact@v2
+        with:
+          name: linux-installer
+          path: |
+            ${{ env.INSTALLER_ARCHIVE }}
+            installer-archive.filename
+      
+  release:
+    runs-on: ubuntu-latest
+    needs: linux
+    steps:
+      - name: Store date.
+        run: echo "DATE=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
+      - name: Download
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-installer
+          path: linux
+      - name: Prepare Release
+        shell: bash
+        run: |
+          echo "LINUX_ARCHIVE=$(cat linux/installer-archive.filename)" >> $GITHUB_ENV
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: linux/${{ env.LINUX_ARCHIVE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GPT_GITHUB_TOKEN }}
