@@ -54,6 +54,7 @@ jobs:
     needs: build
     runs-on: macos-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Store version.
         shell: bash
         run: echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
@@ -61,20 +62,28 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: macos-latest-installer
-          path: macos
+          path: macos-temp
+      - name: Move App
+        run: |
+          mkdir macos
+          mv macos-temp/$(cat macos-temp/archive.filename) macos/
       - name: Install create-dmg
         run: brew install create-dmg
+      - name: Generate icns
+        run: iconutil -c icns icon.iconset
       - name: Build DMG
+        shell: bash
         run: |
+          APP_FILE=$(basename $(find macos/ -iname "*.app"))
           create-dmg \
             --volname "Ask Installer" \
-            --volicon "ask_icon.icns" \
+            --volicon "icon.icns" \
             --background "icons/background.png" \
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "$(cat macos/archive.filename)" 200 190 \
-            --hide-extension "$(cat macos/archive.filename)" \
+            --icon "$APP_FILE" 200 190 \
+            --hide-extension "$APP_FILE" \
             --app-drop-link 600 185 \
             "Ask-Installer_${{ env.VERSION }}.dmg" \
             "macos/"
