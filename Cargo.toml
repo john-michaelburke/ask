@@ -1,6 +1,6 @@
 [package]
 name = "ask"
-description="Wrapper for chatgpt_rs"
+description="Simple binary for using chatgpt in terminal with temp history."
 version = "0.1.0"
 edition = "2021"
 authors = ["John Michael Burke <bigburke@gmail.com>"]
@@ -20,9 +20,10 @@ resources = ["icons/*.png"]
 maintainer = "John Michael Burke <bigburke@gmail.com>"
 copyright = "2023, John Michael Burke <bigburke@gmail.com>"
 category = "Developer Tool"
-short_description = "Wrapper for chatgpt_rs"
+short_description = "Simple binary for using chatgpt in terminal with temp history."
 long_description = """
-Ask is a wrapper for chatgpt_rs, a Rust implementation of OpenAI's GPT-3 chatbot.
-Conversation history is stored in the temp folder to allow continued queries.
+Ask is binary for using chatgpt in terminal. It uses chatgpt_rs, which is a 
+Rust wrapper for OpenAI's GPT chatbot API. Conversation history is stored in 
+the temp folder to allow continued queries.
 """
 osx_url_schemes = ["com.bigburke.ask"]
