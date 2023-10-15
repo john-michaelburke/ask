@@ -87,7 +87,7 @@ jobs:
             --app-drop-link 600 185 \
             "Ask-Installer_${{ env.VERSION }}.dmg" \
             "macos/"
-      - name: Store artifact filename ${{ matrix.os }}
+      - name: Store artifact filename
         shell: bash
         run: |
           INSTALLER_ARCHIVE=$(find . -iname "*.dmg")
@@ -95,7 +95,7 @@ jobs:
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}-installer-dmg
+          name: macos-latest-installer-dmg
           path: |
             ${{ env.INSTALLER_ARCHIVE }}
             archive.filename
