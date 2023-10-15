@@ -1,6 +1,6 @@
 use chatgpt::prelude::*;
 use clap::Parser;
-mod gpt;
+mod ask;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
         .expect("OPENAI_API_KEY not set or `--key` not provided");
     let query = args.query.join(" ");
 
-    let response = gpt::process_query(key, query).await?;
+    let response = ask::process_query(key, query).await?;
     for message in response {
         println!("{}", message.content);
     }
