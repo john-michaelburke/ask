@@ -1,0 +1,86 @@
+name: Check, Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Format
+        run: cargo fmt --all -- --check
+  build:
+    needs: check
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-bundle
+        run: cargo install cargo-bundle
+      - name: Build
+        run: cargo bundle --release
+      - name: Store artifact filename ${{ matrix.os }}
+        shell: bash
+        run: |
+          INSTALLER_ARCHIVE=$(find target/ -iname "*.deb")
+          echo $INSTALLER_ARCHIVE >installer-archive.filename
+          echo "INSTALLER_ARCHIVE=$(cat installer-archive.filename)" >>$GITHUB_ENV
+        if: matrix.os == 'ubuntu-latest'
+      - name: Store artifact filename ${{ matrix.os }}
+        shell: bash
+        run: |
+          INSTALLER_ARCHIVE=$(find target/ -iname "*.app")
+          echo $INSTALLER_ARCHIVE >installer-archive.filename
+          echo "INSTALLER_ARCHIVE=$(cat installer-archive.filename)" >>$GITHUB_ENV
+        if: matrix.os == 'macos-latest'
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-installer
+          path: |
+            ${{ env.INSTALLER_ARCHIVE }}
+            installer-archive.filename
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
+    steps:
+      - name: Store version and date.
+        shell: bash
+        run: |
+          echo "DATE=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      - name: Download Linux
+        uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-latest-installer
+          path: linux
+      - name: Download MacOS
+        uses: actions/download-artifact@v3
+        with:
+          name: macos-latest-installer
+          path: macos
+      - name: Prepare Release
+        shell: bash
+        run: |
+          echo "LINUX_ARCHIVE=$(cat linux/installer-archive.filename)" >> $GITHUB_ENV
+          echo "MACOS_ARCHIVE=$(cat macos/installer-archive.filename)" >> $GITHUB_ENV
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ env.VERSION }}-${{ env.DATE }}
+          files: |
+            linux/${{ env.LINUX_ARCHIVE }}
+            macos/${{ env.MACOS_ARCHIVE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GPT_GITHUB_TOKEN }}
