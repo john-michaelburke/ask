@@ -11,7 +11,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - name: Clippy
@@ -106,7 +106,7 @@ jobs:
     needs: 
       - build
       - build-dmg
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
     steps:
       - name: Store version and date.
