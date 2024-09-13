@@ -44,7 +44,7 @@ jobs:
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
         if: matrix.os == 'macos-latest'
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-installer
           path: |
@@ -96,7 +96,7 @@ jobs:
           INSTALLER_ARCHIVE=$(find . -iname "*.dmg")
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-latest-installer-dmg
           path: |
