@@ -130,7 +130,7 @@ jobs:
           echo "LINUX_ARCHIVE=$(cat linux/archive.filename)" >> $GITHUB_ENV
           echo "MACOS_ARCHIVE=$(cat macos/archive.filename)" >> $GITHUB_ENV
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.VERSION }}-${{ env.DATE }}
           files: |
