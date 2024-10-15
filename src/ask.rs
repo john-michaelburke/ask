@@ -1,5 +1,6 @@
 use chatgpt::prelude::*;
 use futures_util::StreamExt;
+use std::time::Duration;
 
 const CONVERSATION_HISTORY_FILE: &str = "gpt-conversation.json";
 
@@ -8,14 +9,14 @@ pub async fn process_query(
     engine: ChatGPTEngine,
     query: String,
 ) -> Result<Vec<ChatMessage>> {
-    let mut client = ChatGPT::new_with_config(
+    let client = ChatGPT::new_with_config(
         key,
         ModelConfigurationBuilder::default()
             .engine(engine)
+            .timeout(Duration::from_secs(30))
             .build()
             .unwrap(),
     )?;
-    client.config.timeout = std::time::Duration::from_secs(30);
 
     let history_file = std::env::temp_dir().join(CONVERSATION_HISTORY_FILE);
 
