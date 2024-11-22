@@ -22,90 +22,41 @@ jobs:
     needs: check
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        os: 
+          - { name: ubuntu-latest, bundle_format: deb }
+          - { name: macos-latest, bundle_format: osx }
+    runs-on: ${{ matrix.os.name }}
     steps:
       - uses: actions/checkout@v4
       - name: Install cargo-bundle
         run: cargo install cargo-bundle
       - name: Build
-        run: cargo bundle --release
-      - name: Store artifact filename ${{ matrix.os }}
+        run: cargo bundle --release --format ${{ matrix.os.bundle_format }}
+      - name: Store artifact filename ${{ matrix.os.name }}
         shell: bash
         run: |
           INSTALLER_ARCHIVE=$(find target/ -iname "*.deb")
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
-        if: matrix.os == 'ubuntu-latest'
-      - name: Store artifact filename ${{ matrix.os }}
+        if: matrix.os.name == 'ubuntu-latest'
+      - name: Store artifact filename ${{ matrix.os.name }}
         shell: bash
         run: |
           INSTALLER_ARCHIVE=$(find target/ -iname "*.app")
+          zip -rj $(basename $INSTALLER_ARCHIVE.zip) $INSTALLER_ARCHIVE
+          INSTALLER_ARCHIVE=$(basename $INSTALLER_ARCHIVE.zip)
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
-        if: matrix.os == 'macos-latest'
+        if: matrix.os.name == 'macos-latest'
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-installer
-          path: |
-            ${{ env.INSTALLER_ARCHIVE }}
-            archive.filename
-  build-dmg:
-    needs: build
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Store version.
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
-      - name: Download MacOS App
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-latest-installer
-          path: macos-temp
-      - name: Move App
-        run: |
-          mkdir macos
-          mv macos-temp/$(cat macos-temp/archive.filename) macos/
-      - name: Install create-dmg
-        run: brew install create-dmg
-      - name: Generate icns
-        run: iconutil -c icns icon.iconset
-      - name: Build DMG
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            APP_FILE=$(basename $(find macos/ -iname "*.app"))
-            create-dmg \
-              --volname "Ask Installer" \
-              --volicon "icon.icns" \
-              --background "icons/background.png" \
-              --window-pos 200 120 \
-              --window-size 800 400 \
-              --icon-size 100 \
-              --icon "$APP_FILE" 200 190 \
-              --hide-extension "$APP_FILE" \
-              --app-drop-link 600 185 \
-              "Ask-Installer_${{ env.VERSION }}.dmg" \
-              "macos/"
-      - name: Store artifact filename
-        shell: bash
-        run: |
-          INSTALLER_ARCHIVE=$(find . -iname "*.dmg")
-          echo $INSTALLER_ARCHIVE >archive.filename
-          echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-latest-installer-dmg
+          name: ${{ matrix.os.name }}-installer
           path: |
             ${{ env.INSTALLER_ARCHIVE }}
             archive.filename
   release:
     needs: 
       - build
-      - build-dmg
     runs-on: ubuntu-20.04
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
     steps:
@@ -122,7 +73,7 @@ jobs:
       - name: Download MacOS
         uses: actions/download-artifact@v4
         with:
-          name: macos-latest-installer-dmg
+          name: macos-latest-installer
           path: macos
       - name: Prepare Release
         shell: bash
