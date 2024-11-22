@@ -23,28 +23,39 @@ jobs:
     strategy:
       matrix:
         os: 
-          - { name: ubuntu-latest, bundle_format: deb }
-          - { name: macos-latest, bundle_format: osx }
+          - { name: ubuntu-latest, short_os: linux }
+          - { name: macos-latest, short_os: macos }
     runs-on: ${{ matrix.os.name }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install cargo-bundle
-        run: cargo install cargo-bundle
-      - name: Build
-        run: cargo bundle --release --format ${{ matrix.os.bundle_format }}
+      - name: Build ${{ matrix.os.name }}
+        run: |
+          cargo install cargo-bundle
+          cargo bundle --release --format deb
+        if: matrix.os.name == 'ubuntu-latest'
+      - name: Build ${{ matrix.os.name }}
+        run: |
+          cargo build --release  
+        if: matrix.os.name == 'macos-latest'
       - name: Store artifact filename ${{ matrix.os.name }}
         shell: bash
         run: |
-          INSTALLER_ARCHIVE=$(find target/ -iname "*.deb")
+          INSTALLER_ARCHIVE_ORIG=$(find target/ -iname "*.deb")
+          REPO_NAME=${{ github.repository }}
+          INSTALLER_ARCHIVE=${REPO_NAME#*/}_${GITHUB_REF##*/}_${{ matrix.os.short_os }}_amd64.deb
+          mv $INSTALLER_ARCHIVE_ORIG $INSTALLER_ARCHIVE
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
         if: matrix.os.name == 'ubuntu-latest'
       - name: Store artifact filename ${{ matrix.os.name }}
         shell: bash
         run: |
-          INSTALLER_ARCHIVE=$(find target/ -iname "*.app")
-          zip -rj $(basename $INSTALLER_ARCHIVE.zip) $INSTALLER_ARCHIVE
-          INSTALLER_ARCHIVE=$(basename $INSTALLER_ARCHIVE.zip)
+          REPO_NAME=${{ github.repository }}
+          INSTALLER_BINARY=target/release/${REPO_NAME#*/}
+          mv $INSTALLER_BINARY .
+          INSTALLER_BINARY=$(basename $INSTALLER_BINARY)
+          INSTALLER_ARCHIVE="${INSTALLER_BINARY}_${GITHUB_REF##*/}_${{ matrix.os.short_os }}_arm64.zip"
+          zip -ry $INSTALLER_ARCHIVE $INSTALLER_BINARY
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
         if: matrix.os.name == 'macos-latest'
@@ -54,9 +65,35 @@ jobs:
           path: |
             ${{ env.INSTALLER_ARCHIVE }}
             archive.filename
+  check_build:
+    needs: build
+    strategy:
+      matrix:
+        os: 
+          - { name: ubuntu-latest }
+          - { name: macos-latest }
+    runs-on: ${{ matrix.os.name }}
+    steps:
+    - name: Download Archive ${{ matrix.os.name }}
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.os.name }}-installer
+    - name: Install ${{ matrix.os.name }}
+      shell: bash
+      run: |
+        sudo dpkg -i $(cat archive.filename)
+      if: matrix.os.name == 'ubuntu-latest'
+    - name: Install ${{ matrix.os.name }}
+      shell: bash
+      run: |
+        unzip $(cat archive.filename)
+        sudo mv ask /usr/local/bin/
+      if: matrix.os.name == 'macos-latest'
+    - name: Check Version ${{ matrix.os.name }}
+      run: ask -V
   release:
     needs: 
-      - build
+      - check_build
     runs-on: ubuntu-20.04
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
     steps:
@@ -69,7 +106,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ubuntu-latest-installer
-          path: linux
+          path: ubuntu
       - name: Download MacOS
         uses: actions/download-artifact@v4
         with:
@@ -78,14 +115,14 @@ jobs:
       - name: Prepare Release
         shell: bash
         run: |
-          echo "LINUX_ARCHIVE=$(cat linux/archive.filename)" >> $GITHUB_ENV
+          echo "LINUX_ARCHIVE=$(cat ubuntu/archive.filename)" >> $GITHUB_ENV
           echo "MACOS_ARCHIVE=$(cat macos/archive.filename)" >> $GITHUB_ENV
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.VERSION }}-${{ env.DATE }}
           files: |
-            linux/${{ env.LINUX_ARCHIVE }}
+            ubuntu/${{ env.LINUX_ARCHIVE }}
             macos/${{ env.MACOS_ARCHIVE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GPT_GITHUB_TOKEN }}
