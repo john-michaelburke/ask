@@ -6,9 +6,12 @@ edition = "2021"
 authors = ["John Michael Burke <bigburke@gmail.com>"]
 
 [dependencies]
+anyhow = "1.0.98"
 chatgpt_rs = { version = "1.1.3", features = ["streams"] }
 clap = { version = "4.4.3", features = ["derive", "env"] }
 futures-util = "0.3.28"
+gemini-rs = "1.3.0"
+serde_json = "1.0.140"
 tokio = { version = "1.32.0", features = ["rt-multi-thread"] }
 
 
