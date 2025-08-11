@@ -75,7 +75,7 @@ jobs:
     runs-on: ${{ matrix.os.name }}
     steps:
     - name: Download Archive ${{ matrix.os.name }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ${{ matrix.os.name }}-installer
     - name: Install ${{ matrix.os.name }}
@@ -103,12 +103,12 @@ jobs:
           echo "DATE=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
           echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
       - name: Download Linux
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ubuntu-latest-installer
           path: ubuntu
       - name: Download MacOS
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-latest-installer
           path: macos
