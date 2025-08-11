@@ -13,7 +13,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
       - name: Format
@@ -27,7 +27,7 @@ jobs:
           - { name: macos-latest, short_os: macos }
     runs-on: ${{ matrix.os.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build ${{ matrix.os.name }}
         run: |
           cargo install cargo-bundle
