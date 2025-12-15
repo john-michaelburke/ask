@@ -59,7 +59,7 @@ jobs:
           echo $INSTALLER_ARCHIVE >archive.filename
           echo "INSTALLER_ARCHIVE=$(cat archive.filename)" >>$GITHUB_ENV
         if: matrix.os.name == 'macos-latest'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.os.name }}-installer
           path: |
